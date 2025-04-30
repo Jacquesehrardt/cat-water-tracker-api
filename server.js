@@ -1,7 +1,7 @@
 import express from "express";
 import consumption from "./routes/consumption.js";
-import errorHandler from "./middleware/error.js";
-import notFound from "./middleware/notFound.js";
+import errorHandler from "./middlewares/error.js";
+import notFound from "./middlewares/notFound.js";
 
 const port = process.env.PORT || 8000;
 
