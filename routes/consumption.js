@@ -2,7 +2,7 @@ import express from "express";
 import {
    getAllConsumptions,
    getConsumptionByCatId,
-   postNewConsumption,
+   createNewConsumption,
    updateConsumptionById,
    deleteConsumptionById,
 } from "../controllers/consumptionController.js";
@@ -16,7 +16,7 @@ router.get("/", getAllConsumptions);
 router.get("/:catId", getConsumptionByCatId);
 
 //Post a new consumption
-router.post("/", postNewConsumption);
+router.post("/", createNewConsumption);
 
 //Update consumption by id
 router.put("/:id", updateConsumptionById);

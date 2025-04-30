@@ -1,80 +1,82 @@
+import getDbConnection from "../config/database.js";
 import consumptions from "../data/consumptions.js";
+import { buildUpdateQuery } from "../utils/buildUpdateQuery.js";
 
 //Get all consumptions
-export function getAllConsumptions(req, res, next) {
-   const limit = parseInt(req.query.limit);
+export async function getAllConsumptions(req, res, next) {
+   const sql = await getDbConnection();
+   const response =
+      await sql`SELECT cat_id, volume, created_at FROM consumptions`;
 
-   if (!isNaN(limit)) {
-      return res.status(200).json(consumptions.slice(0, limit));
-   }
-   res.status(200).json(consumptions);
+   res.status(200).json(response);
 }
 
 //Get consumption by catId
-export function getConsumptionByCatId(req, res, next) {
-   const catId = parseInt(req.params.catId);
-   const consumptionByCatId = consumptions.filter((cat) => cat.catId === catId);
+export async function getConsumptionByCatId(req, res, next) {
+   const catId = req.params.catId;
 
-   if (!consumptionByCatId.length) {
-      const error = new Error(
-         `Consumption of cat id = ${catId} was not found.`
-      );
-      error.status = 404;
-      return next(error);
-   }
+   const sql = await getDbConnection();
+   const response =
+      await sql`SELECT cat_id, volume, created_at FROM consumptions WHERE cat_id=${catId} `;
 
-   res.status(200).json(consumptionByCatId);
+   res.status(200).json(response);
 }
 
-//Post a new consumption
-export function postNewConsumption(req, res, next) {
-   const newConsumption = {
-      id: consumptions.length + 1,
-      catId: parseInt(req.body.catId),
-      volume: parseInt(req.body.volume),
-   };
+//Create a new consumption
+export async function createNewConsumption(req, res, next) {
+   const catId = req.body.catId;
+   const volume = parseFloat(req.body.volume);
 
-   if (!newConsumption.catId || !newConsumption.volume) {
+   if (!catId || !volume) {
       const error = new Error("Body missing required fields");
       error.status = 400;
       return next(error);
    }
 
-   consumptions.push(newConsumption);
-   res.status(201).json(newConsumption);
+   const sql = await getDbConnection();
+   const response =
+      await sql`INSERT INTO consumptions(cat_id, volume) VALUES (${catId}, ${volume}) RETURNING id`;
+
+   res.status(201).json(response[0]);
 }
 
 //Update consumption by id
-export function updateConsumptionById(req, res, next) {
-   const id = parseInt(req.params.id);
-   const consumption = consumptions.find(
-      (consumption) => consumption.id === id
-   );
+export async function updateConsumptionById(req, res, next) {
+   try {
+      const id = req.params.id;
+      const cat_id = req.body.catId;
+      const volume = parseFloat(req.body.volume);
 
-   if (!consumption) {
-      const error = new Error(`Consumption id of ${id} was not found.`);
-      error.status = 404;
-      return next(error);
+      if (!cat_id && !volume) {
+         const error = new Error("Body missing required fields");
+         error.status = 400;
+         return next(error);
+      }
+
+      const sql = await getDbConnection();
+
+      const fields = {
+         cat_id,
+         volume,
+      };
+
+      const [updateQuery, values] = buildUpdateQuery(
+         "consumptions",
+         fields,
+         id
+      );
+
+      // Executa a query
+      const response = await sql.query(updateQuery, values);
+
+      res.status(200).json({
+         status: "Success",
+         message: "Consumption updated successfully",
+         response: response[0],
+      });
+   } catch (error) {
+      next(error);
    }
-
-   const catId = parseInt(req.body.catId);
-   const volume = parseInt(req.body.volume);
-
-   if (!catId && !volume) {
-      const error = new Error("Body missing required fields");
-      error.status = 400;
-      return next(error);
-   }
-
-   if (catId) {
-      consumption.catId = catId;
-   }
-
-   if (volume) {
-      consumption.volume = volume;
-   }
-
-   res.status(200).json(consumptions);
 }
 
 //Delete consumption by id
